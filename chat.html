@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Home</title>
+    <link rel="stylesheet" href="Styles/style.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="Styles/js-snackbar.css" type="text/css" media="all" />
+    <script src='node_modules/jquery/dist/jquery.js'></script>
+    <script src="scripts/js-snackbar.js"></script>
+	<script src="node_modules/socket.io/client-dist/socket.io.js"></script>
+	<script src="node_modules/socketio-file-upload/client.js"></script>
+    <title>Chat: Home</title>
+    <script>
+        $(()=> {
+            $('.hamburger').click(()=> {
+                $('.nav').toggleClass('active');
+            });
+            $('#panel0, #panel1, #panel2').hide();
+            var socket = io('http://localhost:8005');
+			socket.on('connect', () => {
+				var uploader = new SocketIOFileUpload(socket);
+				uploader.listenOnInput(document.getElementById("fu"))
+				
+				$('#panel1').show();
+				$('#connect').click(() => {
+					socket.emit('register', $('#name').val());
+				});
+				$('#send').click(() => {
+					socket.emit('chat', $('#msg').val());
+                   
+                    $('#mlist').append(`<li>Me: ${$('#msg').val()}</li>`);
+				});
+				$('#upload').click(() => {
+					$('#fu').trigger('click');
+				});
+				socket.on('joined', name => {
+					console.log(name);
+					$('#panel1').hide();
+					$('#panel2').show();
+                    $('#panel0').show();
+                    $('#dname').html(name);
+				});
+				socket.on('userlist', names => {
+					console.log(names);
+					$('#ulist').empty(),
+						names.forEach(n => {
+							$('#ulist').append(`<li>${n}</li>`);
+						});
+				});
+				socket.on('message', m => {
+
+					$('#mlist').append(`<li>${m.from}: ${m.msg}</li>`);
+
+				});
+				socket.on('uploaded', m => {
+
+					console.log(m);
+                   
+					$('#files').append(`<figure>
+						<img src="uploads/${m.type=='image' ? m.file: 'file.png'}" />
+						<figcaption>Uploaded by ${m.from}</figcaption>
+						<a target='_blank' href="uploads/${m.file}">Download</a>
+					</figure>`);
+
+				});
+				uploader.addEventListener("complete", function (event) {
+					console.log(event.success);
+					SnackBar({
+						message: `${event.file.name} uploaded`,
+						position: "bc"
+					});
+				});
+			});
+        });
+    </script>
+</head>
+<body>
+    <header class="container">
+        <div class="header container mb p2">
+            
+            <div class="brand">
+                <div class='big'>
+                    Chat Application
+                </div>
+                <div class="small">
+                    NodeJS & socket.io powered chat and file sharing
+                </div>
+            </div>
+        </div>
+    </header>
+    <nav class='navbar pl pr mt'>
+        <span class='hamburger' href='#' style="font-size: 1.6rem; margin-right: 10px;">&#9776;</span>
+        <span class="filler"></span>
+        <ul class='nav'>
+            <li><a href='index.html'>Home</a></li>
+            <li><a href='chat.html'>Chat</a></li>
+            <li><a href='about.html'>About</a></li>
+        </ul>
+    </nav>
+    <div class='container'>
+        <div class='row mt mb' id='panel0'>
+
+            <div class='c1-4'></div>
+
+            <div class='c2-4 pl'>
+               User: <span id="dname"></span>
+            </div>
+            <div class='c1-4'></div>
+        </div>
+        <div class='row mt mb' id='panel1'>
+
+            <div class='c1-4'></div>
+
+            <div class='c2-4 pl'>
+                <div class='input-group'>
+                    <input type='text' class='input' id='name' placeholder='display name..' />
+                    <button class='button' id='connect'>Connect</button>
+                </div>
+            </div>
+            <div class='c1-4'></div>
+        </div>
+        <div class='row mt mb pl pr' id='panel2'>
+
+ 		<div class='c1-4'>
+
+ 			<div class='list-header'>Users</div>
+ 			<ul class='list' id="ulist">
+ 				
+ 			</ul>
+		</div>
+			
+		<div class='c3-4 pl'> 
+			<div class='input-group'>
+    			<input type='text' class='input' id='msg'/>
+    			<button class='button' id='send'>Send</button>
+    			<button class='button' id='upload'>Files</button>
+    		</div>
+    		<div class='list-header mt'>Messages</div>
+    		<ul class='list' id="mlist">
+				
+			</ul>
+			<div class='files mt' id="files">
+				
+			</div>
+		</div>
+ 	</div>
+    </div>
+    <input type="file" id="fu" multiple style="display: none;" />
+</body>
+</html>
